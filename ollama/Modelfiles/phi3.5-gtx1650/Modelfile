@@ -1,0 +1,11 @@
+FROM phi3.5
+
+PARAMETER num_ctx 512
+PARAMETER num_batch 160
+PARAMETER temperature 0.2
+PARAMETER repeat_penalty 1.15
+
+PARAMETER stop "<|end|>"
+PARAMETER stop "User:"
+PARAMETER stop "<|user|>"
+PARAMETER stop "<|assistant|>"

@@ -1,0 +1,62 @@
+version: 1.2.8
+cache: true
+
+# Show the model selector even with modelSpecs, so tools are visible in normal chats
+#interface:
+#  modelSelect: true
+#  parameters: true
+
+# MCP Servers Configuration
+#mcpServers:
+#  PlantUML:
+#    type: stdio
+#    command: npx
+#    args:
+#      - -y
+#      - plantuml-mcp-server # Assumes plantuml-mcp-server is installed/mounted locally, see docker-compose.override.yml
+#    env:
+#      PLANTUML_SERVER_URL: https://www.plantuml.com/plantuml
+#    timeout: 60000
+#    initTimeout: 30000
+#    serverInstructions: "The generate_plantuml_diagram tool returns an image URL. Display it using markdown: ![Diagram](URL)"
+
+endpoints:
+  agents:
+    capabilities:
+      - context  # wichtig für Upload as Text
+      - tools    # Enable tool/function calling for agents
+      - actions  # Enable actions/MCP tools for agents
+
+  custom:
+    - name: "Ollama"
+      apiKey: "ollama"
+      baseURL: "http://host.docker.internal:11434/"
+      models:
+        default: [
+          "llama3.2-3b-local"
+          ]
+        fetch: true # fetching list of models is not supported
+      titleConvo: true
+      titleModel: "current_model"
+
+      # Theses parameters go to Ollama runtime
+      addParams:
+        options:
+          # Offload & throughput
+          gpu_layers: 27
+
+          # Sampling – conservative
+          temperature: 0.2
+          top_p: 0.9
+          top_k: 40
+          mirostat: 2
+          mirostat_tau: 5.0
+          mirostat_eta: 0.1
+          repeat_penalty: 1.15
+          repeat_last_n: 64
+
+          # Determinism
+          seed: 1
+
+          # Optional guard-rails
+          stop: ["\n\nUser:", "\nUser:"]

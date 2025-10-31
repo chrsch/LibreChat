@@ -1,0 +1,39 @@
+services:
+# USE LIBRECHAT CONFIG FILE
+  api:
+    depends_on:
+      mongodb:
+        condition: service_started
+      rag_api:
+        condition: service_started
+      ollama:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development # development mode allows http cookies for login
+    volumes:
+    #- /home/christoph/Repositories/Github/chrsch/plantuml-mcp-server:/app/plantuml-mcp-server
+    - type: bind
+      source: ./librechat.yaml
+      target: /app/librechat.yaml
+ 
+# ADD OLLAMA
+  ollama:
+    container_name: Ollama
+    image: ollama/ollama:latest
+    restart: always
+    ports: ["11434:11434"]
+    volumes:
+      - ./ollama:/root/.ollama
+      - ./ollama/init-ollama.sh:/usr/local/bin/init-ollama.sh:ro
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    gpus: all
+    entrypoint: ["/bin/bash", "/usr/local/bin/init-ollama.sh"]
+    healthcheck:
+      test: ["CMD", "sh", "-c", "ollama list | grep -q llama3.2-3b-local"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 600s
+
