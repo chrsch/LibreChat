@@ -2,9 +2,31 @@ version: 1.2.8
 cache: true
 
 # Show the model selector even with modelSpecs, so tools are visible in normal chats
-#interface:
-#  modelSelect: true
-#  parameters: true
+interface:
+  modelSelect: true
+  parameters: true
+  webSearch: true
+
+# Web Search Configuration
+webSearch:
+  # Search Provider - SearXNG (self-hosted, no API key needed)
+  # The instance URL is read from SEARXNG_INSTANCE_URL environment variable
+  searxngInstanceUrl: "${SEARXNG_INSTANCE_URL}"
+  searchProvider: "searxng"
+  
+  # Scraper Configuration - Users will provide API key via UI
+  # Get your API key from: https://firecrawl.dev
+  firecrawlApiKey: "${FIRECRAWL_API_KEY}"
+  scraperType: "firecrawl"
+  
+  # Reranker Configuration - Users will provide API key via UI
+  # Get Jina API key from: https://jina.ai/api-dashboard/
+  jinaApiKey: "${JINA_API_KEY}"
+  rerankerType: "jina"
+  
+  # General Settings
+  scraperTimeout: 7500
+  safeSearch: 1  # 0=OFF, 1=MODERATE (default), 2=STRICT
 
 # MCP Servers Configuration
 #mcpServers:
@@ -21,11 +43,8 @@ cache: true
 #    serverInstructions: "The generate_plantuml_diagram tool returns an image URL. Display it using markdown: ![Diagram](URL)"
 
 endpoints:
-  agents:
-    capabilities:
-      - context  # wichtig für Upload as Text
-      - tools    # Enable tool/function calling for agents
-      - actions  # Enable actions/MCP tools for agents
+  # Note: Ollama is not supported as a provider for the Agents endpoint in v0.8.0
+  # Web search can still be used through the custom Ollama endpoint with tools capability
 
   custom:
     - name: "Ollama"
@@ -38,6 +57,9 @@ endpoints:
         fetch: true # fetching list of models is not supported
       titleConvo: true
       titleModel: "current_model"
+      # Enable tools/actions for web search functionality
+      capabilities:
+        - tools
 
       # Theses parameters go to Ollama runtime
       addParams:

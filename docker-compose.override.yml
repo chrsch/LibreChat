@@ -8,8 +8,13 @@ services:
         condition: service_started
       ollama:
         condition: service_healthy
+      searxng:
+        condition: service_started
     environment:
       - NODE_ENV=development # development mode allows http cookies for login
+      - SEARXNG_INSTANCE_URL=http://searxng:8080
+      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY}
+      - JINA_API_KEY=${JINA_API_KEY}
     volumes:
     #- /home/christoph/Repositories/Github/chrsch/plantuml-mcp-server:/app/plantuml-mcp-server
     - type: bind
@@ -36,4 +41,17 @@ services:
       timeout: 10s
       retries: 5
       start_period: 600s
+
+# ADD SEARXNG for web search
+  searxng:
+    container_name: SearXNG
+    image: searxng/searxng:latest
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./searxng:/etc/searxng
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+
 
