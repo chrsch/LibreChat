@@ -2,7 +2,31 @@
 
 - Added support for Ollama with custom models inkl. optimize script.
 
-## Coosing the model to be used by Ollama
+## Configuring the model to be used by Ollama
+
+### Configuration via .env file
+
+The model name and Modelfile path are configured in the `.env` file:
+
+```bash
+# Model name to create/use in Ollama
+OLLAMA_MODEL_NAME=llama3.2-3b-local:latest
+
+# Path to the Modelfile (relative to /root/.ollama in the container)
+OLLAMA_MODELFILE_PATH=Modelfiles/llama3.2-3b-gtx1650/Modelfile
+```
+
+When you change these values, restart the Ollama container:
+```bash
+docker compose up -d --force-recreate ollama
+```
+
+The init script will automatically:
+- Create the model from your specified Modelfile if it doesn't exist
+- Warm up the model so it's ready for first use
+- Health check will ensure the model is available before LibreChat starts
+
+### Manual model management
 
 List available models ```docker exec -it Ollama ollama list```
 
@@ -56,14 +80,14 @@ The `ollama/optimize.sh` script automatically finds optimal GPU and batch settin
 
 ### Usage
 
-Run the optimization script:
+Run the optimization script (it will automatically use the model configured in your .env file):
 ```bash
 ./ollama/optimize.sh
 ```
 
-Or with custom settings:
+Or override with custom settings:
 ```bash
-HOST=127.0.0.1 PORT=11434 MODEL=llama3.2-3b-local CTX=512 ./ollama/optimize.sh
+HOST=127.0.0.1 PORT=11434 MODEL=my-custom-model CTX=512 ./ollama/optimize.sh
 ```
 
 ### What it does
@@ -77,12 +101,14 @@ HOST=127.0.0.1 PORT=11434 MODEL=llama3.2-3b-local CTX=512 ./ollama/optimize.sh
 
 - `HOST` - Ollama host (default: 127.0.0.1)
 - `PORT` - Ollama port (default: 11434)
-- `MODEL` - Model to optimize (default: llama3.2-3b-local)
+- `MODEL` - Model to optimize (default: reads from .env file's OLLAMA_MODEL_NAME)
 - `CTX` - Context window size (default: 512)
 - `L_START` - Starting gpu_layers value (default: 24)
 - `B_START` - Starting num_batch value (default: 128)
 - `B_STEP` - Batch size increment (default: 32)
 - `B_MAX` - Maximum batch size to test (default: 224)
+
+**Note:** The script automatically reads the model name from your `.env` file, so you don't need to specify it unless you want to test a different model.
 
 ### Example Output
 

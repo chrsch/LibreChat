@@ -1,10 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# -------- Load model name from .env file if available ----------
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENV_FILE="${SCRIPT_DIR}/../.env"
+
+DEFAULT_MODEL="llama3.2-3b-local"
+
+if [[ -f "$ENV_FILE" ]]; then
+  # Read OLLAMA_MODEL_NAME from .env file
+  ENV_MODEL="$(grep -E '^OLLAMA_MODEL_NAME=' "$ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'" | xargs || true)"
+  if [[ -n "$ENV_MODEL" ]]; then
+    DEFAULT_MODEL="$ENV_MODEL"
+    echo "Using model from .env: $DEFAULT_MODEL"
+  fi
+fi
+
 # -------- settings (override via env or args if you like) ----------
 HOST="${HOST:-127.0.0.1}"
 PORT="${PORT:-11434}"
-MODEL="${MODEL:-llama3.2-3b-local}"
+MODEL="${MODEL:-$DEFAULT_MODEL}"
 CTX="${CTX:-512}"
 
 # start gpu_layers here (safe for 4GB cards), will auto-increase

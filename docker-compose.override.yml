@@ -28,10 +28,12 @@ services:
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - OLLAMA_MODEL_NAME=${OLLAMA_MODEL_NAME}
+      - OLLAMA_MODELFILE_PATH=${OLLAMA_MODELFILE_PATH}
     gpus: all
     entrypoint: ["/bin/bash", "/usr/local/bin/init-ollama.sh"]
     healthcheck:
-      test: ["CMD", "sh", "-c", "ollama list | grep -q llama3.2-3b-local"]
+      test: ["CMD", "sh", "-c", "ollama list | grep -q ${OLLAMA_MODEL_NAME}"]
       interval: 15s
       timeout: 10s
       retries: 5

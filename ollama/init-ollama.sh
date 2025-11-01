@@ -1,7 +1,12 @@
 #!/bin/bash
 set -e
 
+# Read configuration from environment variables with defaults
+MODEL_NAME="${OLLAMA_MODEL_NAME:-llama3.2-3b-local:latest}"
+MODELFILE_PATH="${OLLAMA_MODELFILE_PATH:-Modelfiles/llama3.2-3b-gtx1650/Modelfile}"
+
 echo "Starting Ollama service..."
+echo "Configuration: Model='${MODEL_NAME}', Modelfile='/root/.ollama/${MODELFILE_PATH}'"
 
 # Start Ollama in the background
 /bin/ollama serve &
@@ -21,16 +26,16 @@ for i in {1..60}; do
     sleep 1
 done
 
-echo "Checking if llama3.2-3b-local model exists..."
-if ollama list | grep -q llama3.2-3b-local; then
-    echo "Model llama3.2-3b-local already exists, skipping creation."
+echo "Checking if ${MODEL_NAME} model exists..."
+if ollama list | grep -q "${MODEL_NAME}"; then
+    echo "Model ${MODEL_NAME} already exists, skipping creation."
 else
-    echo "Creating llama3.2-3b-local model..."
+    echo "Creating ${MODEL_NAME} model..."
     # Create the model from the Modelfile
-    if ollama create llama3.2-3b-local -f /root/.ollama/Modelfiles/llama3.2-3b-gtx1650/Modelfile; then
-        echo "Model llama3.2-3b-local created successfully!"
+    if ollama create "${MODEL_NAME}" -f "/root/.ollama/${MODELFILE_PATH}"; then
+        echo "Model ${MODEL_NAME} created successfully!"
     else
-        echo "Failed to create model llama3.2-3b-local"
+        echo "Failed to create model ${MODEL_NAME}"
         exit 1
     fi
 fi
@@ -38,8 +43,8 @@ fi
 echo "Verifying model is ready to use..."
 # Test that the model can actually be loaded (this ensures Ollama is truly ready)
 for i in {1..30}; do
-    if ollama show llama3.2-3b-local >/dev/null 2>&1; then
-        echo "Model llama3.2-3b-local is ready!"
+    if ollama show "${MODEL_NAME}" >/dev/null 2>&1; then
+        echo "Model ${MODEL_NAME} is ready!"
         break
     fi
     if [ $i -eq 30 ]; then
@@ -50,9 +55,9 @@ for i in {1..30}; do
     sleep 2
 done
 
-echo "Warming up model llama3.2-3b-local..."
+echo "Warming up model ${MODEL_NAME}..."
 # Send a simple prompt to preload the model into memory
-if echo "Hello" | ollama run llama3.2-3b-local >/dev/null 2>&1; then
+if echo "Hello" | ollama run "${MODEL_NAME}" >/dev/null 2>&1; then
     echo "Model warm-up complete!"
 else
     echo "Warning: Model warm-up failed, but continuing anyway..."
