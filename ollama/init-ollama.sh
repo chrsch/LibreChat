@@ -50,6 +50,14 @@ for i in {1..30}; do
     sleep 2
 done
 
+echo "Warming up model llama3.2-3b-local..."
+# Send a simple prompt to preload the model into memory
+if echo "Hello" | ollama run llama3.2-3b-local >/dev/null 2>&1; then
+    echo "Model warm-up complete!"
+else
+    echo "Warning: Model warm-up failed, but continuing anyway..."
+fi
+
 echo "Ollama initialization complete. Model ready."
 
 # Keep the Ollama process running
