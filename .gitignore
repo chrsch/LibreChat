@@ -131,6 +131,10 @@ helm/**/.values.yaml
 /.codeium
 *.local.md
 
+# Librechat configuration
+librechat.yaml
+librechat.yml
+
 # Ignore Ollama working data
 ollama/models
 ollama/history

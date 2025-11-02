@@ -2,19 +2,24 @@
 
 - Added support for Ollama with custom models inkl. optimize script.
 
-## Configuring the model to be used by Ollama
+## Configuring the models to be used by Ollama
 
 ### Configuration via .env file
 
-The model name and Modelfile path are configured in the `.env` file:
+Multiple models can be configured in the `.env` file using a comma-separated list:
 
 ```bash
-# Model name to create/use in Ollama
-OLLAMA_MODEL_NAME=llama3.2-3b-local:latest
+# Model configurations (comma-separated for multiple models)
+# Format: MODEL_NAME:MODELFILE_PATH
+OLLAMA_MODELS=llama3.2-3b-local:Modelfiles/llama3.2-3b-gtx1650/Modelfile,llama3.2-3b-rag:Modelfiles/llama3.2-3b-RAG-gtx1650/Modelfile
 
-# Path to the Modelfile (relative to /root/.ollama in the container)
-OLLAMA_MODELFILE_PATH=Modelfiles/llama3.2-3b-gtx1650/Modelfile
+# Example: Add more models
+# OLLAMA_MODELS=model1:Modelfiles/folder1/Modelfile,model2:Modelfiles/folder2/Modelfile
 ```
+
+**Format**: `MODEL_NAME:MODELFILE_PATH` (paths are relative to `/root/.ollama` in the container)
+
+The model names will automatically get the `:latest` tag appended if not specified.
 
 When you change these values, restart the Ollama container:
 ```bash
@@ -22,9 +27,33 @@ docker compose up -d --force-recreate ollama
 ```
 
 The init script will automatically:
-- Create the model from your specified Modelfile if it doesn't exist
-- Warm up the model so it's ready for first use
-- Health check will ensure the model is available before LibreChat starts
+- Create all models from their specified Modelfiles if they don't exist
+- Warm up each model sequentially so they're ready for first use
+- Health check will ensure all models are available before LibreChat starts
+
+### Available Models
+
+This setup includes example models optimized for GTX 1650 (4GB VRAM):
+
+| Model | Context Size | Use Case | Modelfile |
+|-------|--------------|----------|-----------|
+| **llama3.2-3b-local** | 512 tokens | Fast chats, quick queries | `Modelfiles/llama3.2-3b-gtx1650/` |
+| **llama3.2-3b-rag** | 8192 tokens | RAG, "Upload as Text", documents | `Modelfiles/llama3.2-3b-RAG-gtx1650/` |
+
+These are example configurations. You can add your own custom models by creating Modelfiles and adding them to `OLLAMA_MODELS` in `.env`.
+
+## Use Cases & Extensions
+
+### Invoice Extraction Agent
+
+For a complete invoice extraction solution with Python API, see:
+**[`librechat-agent-invoice-extractor/`](librechat-agent-invoice-extractor/)**
+
+This includes:
+- Pre-configured Qwen2.5 3B model optimized for structured data extraction
+- Python CLI and API for PDF processing
+- Batch processing examples
+- Vendor mapping and JSON output
 
 ### Manual model management
 
@@ -40,31 +69,58 @@ In general you choose a model and run it with ```ollama run <model-name>```
 
 Enter bash of Ollama container ```docker exec -it Ollama bash```
 
-Run a given model ```ollama run llama3.2-3b-local```
+Run a given model:
+```ollama run llama3.2-3b-local```
+```ollama run llama3.2-3b-rag```
+```ollama run <your-model-name>```
 
-Delete a given model ```ollama rm llama3.2-3b-local```
+Delete a given model:
+```ollama rm llama3.2-3b-local```
+```ollama rm <your-model-name>```
 
 ### Create a model with a Modelfile
 
-Modelfile
+Example Modelfile (small context for fast inference):
 ```
 FROM llama3.2:3b
 
 PARAMETER num_ctx 512
-PARAMETER num_batch 160
-PARAMETER temperature 0.2
-PARAMETER repeat_penalty 1.15
-
-PARAMETER stop "<|eot_id|>"
-PARAMETER stop "<|end_of_text|>"
-PARAMETER stop "User:"
-PARAMETER stop "<|user|>"
-PARAMETER stop "<|assistant|>"
-
+PARAMETER num_batch 128
 PARAMETER num_keep 160
 ```
 
-Crate model from Modelfile ```ollama create phi3-mini-local -f /root/.ollama/Modelfiles/phi3mini-gtx1650/Modelfile```
+Example Modelfile (large context for RAG/documents):
+```
+FROM llama3.2:3b
+
+PARAMETER num_ctx 8192
+PARAMETER num_batch 512
+PARAMETER num_keep 256
+```
+
+Example Modelfile (custom with system prompt):
+```
+FROM llama3.2:3b
+
+PARAMETER num_ctx 2048
+PARAMETER num_batch 256
+PARAMETER temperature 0.7
+
+SYSTEM """You are a helpful assistant."""
+```
+
+Create model from Modelfile:
+```bash
+ollama create my-custom-model -f /root/.ollama/Modelfiles/my-folder/Modelfile
+```
+
+To add a new model to the multi-model configuration:
+1. Create a new Modelfile directory under `ollama/Modelfiles/`
+2. Add your model configuration to `OLLAMA_MODELS` in `.env`:
+   ```bash
+   OLLAMA_MODELS=model1:Modelfiles/folder1/Modelfile,model2:Modelfiles/folder2/Modelfile,my-custom-model:Modelfiles/my-folder/Modelfile
+   ```
+3. Restart Ollama: `docker compose up -d --force-recreate ollama`
 
 ## Debugging GPU usage
 
@@ -80,12 +136,14 @@ The `ollama/optimize.sh` script automatically finds optimal GPU and batch settin
 
 ### Usage
 
-Run the optimization script (it will automatically use the model configured in your .env file):
+Run the optimization script for a specific model:
 ```bash
-./ollama/optimize.sh
+MODEL=llama3.2-3b-local ./ollama/optimize.sh
+MODEL=llama3.2-3b-rag CTX=8192 ./ollama/optimize.sh
+MODEL=your-custom-model CTX=4096 ./ollama/optimize.sh
 ```
 
-Or override with custom settings:
+Or use custom settings:
 ```bash
 HOST=127.0.0.1 PORT=11434 MODEL=my-custom-model CTX=512 ./ollama/optimize.sh
 ```
@@ -101,14 +159,14 @@ HOST=127.0.0.1 PORT=11434 MODEL=my-custom-model CTX=512 ./ollama/optimize.sh
 
 - `HOST` - Ollama host (default: 127.0.0.1)
 - `PORT` - Ollama port (default: 11434)
-- `MODEL` - Model to optimize (default: reads from .env file's OLLAMA_MODEL_NAME)
-- `CTX` - Context window size (default: 512)
+- `MODEL` - Model to optimize (**required**, e.g., `llama3.2-3b-local` or `llama3.2-3b-rag`)
+- `CTX` - Context window size (default: 512, use 8192 for RAG model)
 - `L_START` - Starting gpu_layers value (default: 24)
 - `B_START` - Starting num_batch value (default: 128)
 - `B_STEP` - Batch size increment (default: 32)
 - `B_MAX` - Maximum batch size to test (default: 224)
 
-**Note:** The script automatically reads the model name from your `.env` file, so you don't need to specify it unless you want to test a different model.
+**Note:** You must specify the `MODEL` variable to optimize. Test each model separately with its corresponding context size.
 
 ### Example Output
 

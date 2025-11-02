@@ -1,0 +1,33 @@
+FROM qwen2.5:3b-instruct
+
+# Extraction-optimized parameters for GTX 1650 (4GB VRAM)
+# Tuned for invoice field extraction with JSON output
+
+PARAMETER num_ctx 4096
+PARAMETER num_batch 512
+PARAMETER num_keep 256
+
+# Low temperature for deterministic extraction
+PARAMETER temperature 0.15
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+
+# Reduce repetition in structured output
+PARAMETER repeat_last_n 64
+PARAMETER repeat_penalty 1.05
+
+# Stop tokens
+PARAMETER stop "<|endoftext|>"
+PARAMETER stop "<|im_end|>"
+
+SYSTEM """You are a precise invoice data extraction assistant. Extract information from provided invoice text and return ONLY valid JSON.
+
+Rules:
+1. Extract ONLY from the provided context - never guess or infer
+2. Return null for any field not explicitly present
+3. Follow the exact schema provided
+4. Use ISO 8601 dates (YYYY-MM-DD)
+5. Use ISO 4217 currency codes
+6. Use dot as decimal separator for numbers
+7. Do not add explanations or prose
+8. Output JSON only"""
