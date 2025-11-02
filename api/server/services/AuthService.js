@@ -30,6 +30,10 @@ const domains = {
 };
 
 const isProduction = process.env.NODE_ENV === 'production';
+// Allow development cookie settings for local network access.
+// Note: npm 'backend' script uses cross-env NODE_ENV=production, which overrides docker-compose env vars.
+// ALLOW_DEV_COOKIES provides explicit control for development cookie behavior (sameSite: 'lax', secure: false).
+const useDevCookies = process.env.ALLOW_DEV_COOKIES === 'true' || process.env.NODE_ENV === 'development';
 const genericVerificationMessage = 'Please check your email to verify your email address.';
 
 /**
@@ -383,18 +387,16 @@ const setAuthTokens = async (userId, res, _session = null) => {
     const user = await getUserById(userId);
     const token = await generateToken(user);
 
-    res.cookie('refreshToken', refreshToken, {
+    // In development mode, use more permissive cookie settings for network access
+    const cookieOptions = {
       expires: new Date(refreshTokenExpires),
       httpOnly: true,
-      secure: isProduction,
-      sameSite: 'strict',
-    });
-    res.cookie('token_provider', 'librechat', {
-      expires: new Date(refreshTokenExpires),
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: 'strict',
-    });
+      secure: isProduction && !useDevCookies,
+      sameSite: useDevCookies ? 'lax' : 'strict',
+    };
+
+    res.cookie('refreshToken', refreshToken, cookieOptions);
+    res.cookie('token_provider', 'librechat', cookieOptions);
     return token;
   } catch (error) {
     logger.error('[setAuthTokens] Error in setting authentication tokens:', error);
@@ -431,29 +433,24 @@ const setOpenIDAuthTokens = (tokenset, res, userId) => {
       logger.error('[setOpenIDAuthTokens] No access or refresh token found in tokenset');
       return;
     }
-    res.cookie('refreshToken', tokenset.refresh_token, {
+
+    // In development mode, use more permissive cookie settings for network access
+    const cookieOptions = {
       expires: expirationDate,
       httpOnly: true,
-      secure: isProduction,
-      sameSite: 'strict',
-    });
-    res.cookie('token_provider', 'openid', {
-      expires: expirationDate,
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: 'strict',
-    });
+      secure: isProduction && !useDevCookies,
+      sameSite: useDevCookies ? 'lax' : 'strict',
+    };
+
+    res.cookie('refreshToken', tokenset.refresh_token, cookieOptions);
+    res.cookie('token_provider', 'openid', cookieOptions);
+    
     if (userId && isEnabled(process.env.OPENID_REUSE_TOKENS)) {
       /** JWT-signed user ID cookie for image path validation when OPENID_REUSE_TOKENS is enabled */
       const signedUserId = jwt.sign({ id: userId }, process.env.JWT_REFRESH_SECRET, {
         expiresIn: expiryInMilliseconds / 1000,
       });
-      res.cookie('openid_user_id', signedUserId, {
-        expires: expirationDate,
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: 'strict',
-      });
+      res.cookie('openid_user_id', signedUserId, cookieOptions);
     }
     return tokenset.access_token;
   } catch (error) {

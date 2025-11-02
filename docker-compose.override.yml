@@ -10,11 +10,15 @@ services:
         condition: service_healthy
     environment:
       - NODE_ENV=development # development mode allows http cookies for login
+      - ALLOW_DEV_COOKIES=true # Required: npm script uses cross-env NODE_ENV=production, so this enables lax sameSite cookies for network access
     volumes:
     #- /home/christoph/Repositories/Github/chrsch/plantuml-mcp-server:/app/plantuml-mcp-server
     - type: bind
       source: ./librechat.yaml
       target: /app/librechat.yaml
+    - type: bind
+      source: ./api/server/services/AuthService.js
+      target: /app/api/server/services/AuthService.js
   
   rag_api:
     image: ghcr.io/danny-avila/librechat-rag-api-dev:latest
