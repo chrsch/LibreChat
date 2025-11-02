@@ -1,0 +1,62 @@
+# SearXNG configuration for LibreChat
+
+use_default_settings: true
+
+general:
+  instance_name: "LibreChat SearXNG"
+  debug: false
+  
+server:
+  secret_key: "changeme_replace_with_random_string"
+  limiter: false
+  image_proxy: true
+  port: 8080
+  bind_address: "0.0.0.0"
+
+search:
+  safe_search: 1  # 0=OFF, 1=MODERATE, 2=STRICT
+  autocomplete: "google"
+  default_lang: "en"
+  formats:
+    - html
+    - json  # Required for LibreChat API access
+
+ui:
+  static_use_hash: true
+  default_locale: "en"
+  query_in_title: false
+  infinite_scroll: true
+  default_theme: simple
+  theme_args:
+    simple_style: auto
+
+enabled_plugins:
+  - 'Hash plugin'
+  - 'Self Information'
+  - 'Tracker URL remover'
+
+engines:
+  - name: google
+    engine: google
+    shortcut: go
+    disabled: false
+
+  - name: duckduckgo
+    engine: duckduckgo
+    shortcut: ddg
+    disabled: false
+
+  - name: wikipedia
+    engine: wikipedia
+    shortcut: wp
+    disabled: false
+
+  - name: bing
+    engine: bing
+    shortcut: bi
+    disabled: false
+
+  - name: brave
+    engine: brave
+    shortcut: br
+    disabled: false

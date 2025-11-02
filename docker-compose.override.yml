@@ -8,9 +8,14 @@ services:
         condition: service_started
       ollama:
         condition: service_healthy
+      searxng:
+        condition: service_started
     environment:
       - NODE_ENV=development # development mode allows http cookies for login
       - ALLOW_DEV_COOKIES=true # Required: npm script uses cross-env NODE_ENV=production, so this enables lax sameSite cookies for network access
+      - SEARXNG_INSTANCE_URL=http://searxng:8080
+      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY}
+      - JINA_API_KEY=${JINA_API_KEY}
     volumes:
     #- /home/christoph/Repositories/Github/chrsch/plantuml-mcp-server:/app/plantuml-mcp-server
     - type: bind
@@ -44,4 +49,17 @@ services:
       timeout: 10s
       retries: 5
       start_period: 600s
+
+# ADD SEARXNG for web search
+  searxng:
+    container_name: SearXNG
+    image: searxng/searxng:latest
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./searxng:/etc/searxng
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+
 
