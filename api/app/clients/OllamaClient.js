@@ -23,6 +23,10 @@ const ollamaPayloadSchema = z.object({
   top_p: z.number().optional(),
   stream: z.optional(z.boolean()),
   model: z.string(),
+  // Keep model loaded in memory (-1 = forever, 0 = unload immediately, "5m" = 5 minutes)
+  keep_alive: z.union([z.number(), z.string()]).optional(),
+  // Ollama-specific options (num_gpu, num_batch, gpu_layers, etc.)
+  options: z.record(z.any()).optional(),
 });
 
 /**
