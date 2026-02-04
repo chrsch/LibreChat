@@ -7,17 +7,17 @@ services:
       rag_api:
         condition: service_started
       ollama:
-        condition: service_healthy
+        condition: service_started
     environment:
       - NODE_ENV=development # development mode allows http cookies for login
       - ALLOW_DEV_COOKIES=true # Required: npm script uses cross-env NODE_ENV=production, so this enables lax sameSite cookies for network access
     volumes:
     #- /home/christoph/Repositories/Github/chrsch/plantuml-mcp-server:/app/plantuml-mcp-server
     - type: bind
-      source: ./librechat.yaml
+      source: /home/christoph/Repositories/Github/chrsch/LibreChat/librechat.yaml
       target: /app/librechat.yaml
     - type: bind
-      source: ./api/server/services/AuthService.js
+      source: /home/christoph/Repositories/Github/chrsch/LibreChat/api/server/services/AuthService.js
       target: /app/api/server/services/AuthService.js
   
   rag_api:
@@ -39,9 +39,9 @@ services:
     gpus: all
     entrypoint: ["/bin/bash", "/usr/local/bin/init-ollama.sh"]
     healthcheck:
-      test: ["CMD", "sh", "-c", "ollama list | grep -q 'llama3.2-3b'"]
-      interval: 15s
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
       timeout: 10s
-      retries: 5
-      start_period: 600s
+      retries: 10
+      start_period: 120s
 
