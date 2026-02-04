@@ -1,0 +1,25 @@
+FROM qwen2.5-coder:3b
+
+# Optimized for GTX 1650 (4GB VRAM) - full GPU acceleration
+# Balanced context for coding tasks while fitting in VRAM
+
+# GPU optimization - 4096 context balances usability and GPU fit
+PARAMETER num_ctx 4096
+PARAMETER num_batch 256
+PARAMETER num_keep 256
+PARAMETER num_gpu 99
+
+# Coding-focused sampling - low temperature for accuracy
+PARAMETER temperature 0.1
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+
+# Reduce repetition
+PARAMETER repeat_last_n 128
+PARAMETER repeat_penalty 1.1
+
+# Stop tokens
+PARAMETER stop "<|endoftext|>"
+PARAMETER stop "<|im_end|>"
+
+SYSTEM """You are Qwen, a helpful coding assistant created by Alibaba Cloud. You write clean, efficient, and well-documented code. You explain your reasoning when helpful."""
