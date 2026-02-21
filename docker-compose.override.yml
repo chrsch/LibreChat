@@ -24,6 +24,11 @@ services:
       source: ./mcp-servers/collmex-invoices
       target: /app/mcp-servers/collmex-invoices
       read_only: true
+    # Nextcloud-WebDAV MCP server (built dist + node_modules)
+    - type: bind
+      source: ./mcp-servers/nextcloud-webdav
+      target: /app/mcp-servers/nextcloud-webdav
+      read_only: true
   
   rag_api:
     image: ghcr.io/danny-avila/librechat-rag-api-dev:latest
