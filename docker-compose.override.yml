@@ -19,6 +19,11 @@ services:
     - type: bind
       source: /home/christoph/Repositories/Github/chrsch/LibreChat/api/server/services/AuthService.js
       target: /app/api/server/services/AuthService.js
+    # Collmex-Invoices MCP server (built dist + node_modules)
+    - type: bind
+      source: ./mcp-servers/collmex-invoices
+      target: /app/mcp-servers/collmex-invoices
+      read_only: true
   
   rag_api:
     image: ghcr.io/danny-avila/librechat-rag-api-dev:latest
@@ -30,7 +35,11 @@ services:
     restart: always
     ports: ["11434:11434"]
     volumes:
-      - ./ollama:/root/.ollama
+      # Named volume keeps downloaded model blobs/manifests across `compose down/up`.
+      # Only `compose down -v` would delete this volume.
+      - ollama_models:/root/.ollama/models
+      # Modelfile definitions and init script remain as bind mounts (version-controlled).
+      - ./ollama/Modelfiles:/root/.ollama/Modelfiles:ro
       - ./ollama/init-ollama.sh:/usr/local/bin/init-ollama.sh:ro
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
@@ -45,3 +54,7 @@ services:
       retries: 10
       start_period: 120s
 
+volumes:
+  # Persists Ollama model blobs and manifests across compose down/up cycles.
+  # Remove with `docker compose down -v` only when you intentionally want to delete all models.
+  ollama_models:

@@ -29,8 +29,26 @@ create_and_warmup_model() {
     echo "---"
     echo "Processing model: ${MODEL_NAME}"
     echo "Modelfile: /root/.ollama/${MODELFILE_PATH}"
+
+    # Parse the base model from the FROM directive in the Modelfile
+    local BASE_MODEL
+    BASE_MODEL=$(grep -i '^FROM ' "/root/.ollama/${MODELFILE_PATH}" | awk '{print $2}' | head -1)
+    if [ -n "${BASE_MODEL}" ]; then
+        echo "Base model required: ${BASE_MODEL}"
+        if ollama list | grep -q "^${BASE_MODEL%%:*}"; then
+            echo "Base model ${BASE_MODEL} already present, skipping pull."
+        else
+            echo "Pulling base model ${BASE_MODEL}..."
+            if ollama pull "${BASE_MODEL}"; then
+                echo "Base model ${BASE_MODEL} pulled successfully!"
+            else
+                echo "Failed to pull base model ${BASE_MODEL}"
+                return 1
+            fi
+        fi
+    fi
     
-    # Check if model exists
+    # Check if custom model exists
     if ollama list | grep -q "${MODEL_NAME}"; then
         echo "Model ${MODEL_NAME} already exists, skipping creation."
     else
