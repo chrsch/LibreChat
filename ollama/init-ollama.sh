@@ -86,11 +86,11 @@ create_and_warmup_model() {
     fi
 }
 
-# Process multiple models from OLLAMA_MODELS configuration
-echo "Models to process: ${OLLAMA_MODELS}"
+# Process multiple models from CUSTOM_OLLAMA_MODELS configuration
+echo "Models to process: ${CUSTOM_OLLAMA_MODELS}"
 
-# Split OLLAMA_MODELS by comma and process each
-IFS=',' read -ra MODEL_CONFIGS <<< "$OLLAMA_MODELS"
+# Split CUSTOM_OLLAMA_MODELS by comma and process each
+IFS=',' read -ra MODEL_CONFIGS <<< "$CUSTOM_OLLAMA_MODELS"
 
 for config in "${MODEL_CONFIGS[@]}"; do
     # Trim whitespace

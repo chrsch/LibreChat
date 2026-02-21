@@ -44,7 +44,9 @@ services:
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-      - OLLAMA_MODELS=${OLLAMA_MODELS}
+      # CUSTOM_OLLAMA_MODELS: comma-separated list of "name:Modelfile" pairs for init-ollama.sh.
+      # Do NOT use OLLAMA_MODELS — Ollama reserves that name for its models storage directory.
+      - CUSTOM_OLLAMA_MODELS=${CUSTOM_OLLAMA_MODELS}
     gpus: all
     entrypoint: ["/bin/bash", "/usr/local/bin/init-ollama.sh"]
     healthcheck:
