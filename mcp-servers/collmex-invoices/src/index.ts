@@ -92,7 +92,7 @@ async function main() {
     `Retrieve historical expense account usage for a specific Collmex vendor. Analyses past bookings to determine which expense accounts were used most frequently. The most-used account is typically the best choice (80%+ accuracy). Returns accounts sorted by frequency. Default lookback: ${config.accountHistoryYears} years.`,
     {
       vendor_number: z.string().describe('Collmex vendor number (e.g., "70001")'),
-      years_back: z.number().optional().default(config.accountHistoryYears).describe(`Number of years of history to analyse (default: ${config.accountHistoryYears})`),
+      years_back: z.number().nullish().default(config.accountHistoryYears).describe(`Number of years of history to analyse (default: ${config.accountHistoryYears})`),
     },
     async (args) => handleGetVendorAccountHistory(client, args),
   );
@@ -103,18 +103,18 @@ async function main() {
     'Apply the 5-level account selection logic to determine the best expense account for an invoice. Priority: 1) Historical usage, 2) Vendor preferred account, 3) AI/LLM suggestion, 4) Static keyword rules, 5) Default 4900. Provide as many inputs as available.',
     {
       vendor_name: z.string().describe('Vendor/company name (for static rule matching)'),
-      vendor_preferred_account: z.string().optional().describe('Preferred expense account from vendor master data'),
+      vendor_preferred_account: z.string().nullish().describe('Preferred expense account from vendor master data'),
       account_history: z
         .array(
           z.object({
             account: z.string(),
             frequency: z.number(),
-            percentage: z.number().optional(),
+            percentage: z.number().nullish(),
           }),
         )
-        .optional()
+        .nullish()
         .describe('Historical account entries from collmex_get_vendor_account_history'),
-      ai_suggestion: z.string().optional().describe('Account number suggested by your analysis of the invoice content'),
+      ai_suggestion: z.string().nullish().describe('Account number suggested by your analysis of the invoice content'),
     },
     async (args) => handleSelectAccount(args),
   );
@@ -133,9 +133,9 @@ async function main() {
             net_amount: z.number().describe('Net amount (excluding VAT) in EUR'),
             vat_amount: z.number().describe('VAT amount in EUR'),
             expense_account: z.string().describe('Expense account number (e.g., "4616")'),
-            booking_text: z.string().optional().describe('Booking text / description'),
-            currency: z.string().optional().describe(`Currency code (default: ${config.defaultCurrency})`),
-            tax_code: z.number().optional().describe(`Collmex tax code / Steuerschlüssel (default: ${config.defaultTaxCode} = 19% VAT). Use 0 for tax-free, 8 for 7% VAT.`),
+            booking_text: z.string().nullish().describe('Booking text / description'),
+            currency: z.string().nullish().describe(`Currency code (default: ${config.defaultCurrency})`),
+            tax_code: z.number().nullish().describe(`Collmex tax code / Steuerschlüssel (default: ${config.defaultTaxCode} = 19% VAT). Use 0 for tax-free, 8 for 7% VAT.`),
           }),
         )
         .describe('Array of invoice objects to upload'),

@@ -69,9 +69,9 @@ export const SELECT_ACCOUNT_TOOL = {
 
 export async function handleSelectAccount(args: {
   vendor_name: string;
-  vendor_preferred_account?: string;
-  account_history?: Array<{ account: string; frequency: number; percentage?: number }>;
-  ai_suggestion?: string;
+  vendor_preferred_account?: string | null;
+  account_history?: Array<{ account: string; frequency: number; percentage?: number | null }> | null;
+  ai_suggestion?: string | null;
 }): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
   let selection: AccountSelection;
 
