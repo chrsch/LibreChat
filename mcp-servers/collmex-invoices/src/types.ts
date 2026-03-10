@@ -28,7 +28,6 @@ export interface InvoiceUpload {
   expense_account: string;
   booking_text?: string;
   currency?: string;
-  tax_code?: number;
 }
 
 export interface AccountSelection {

@@ -227,7 +227,7 @@ export class CollmexClient {
         toCommaFloat(inv.vat_amount),
         '', '', '', '', // Fields 8-11 empty
         inv.currency ?? this.config.defaultCurrency,
-        inv.tax_code ?? this.config.defaultTaxCode,
+        this.config.defaultTaxCode, // Contra/payable account (SKR03: 1600 = Verbindlichkeiten) — always fixed, NOT a variable tax code
         0, // Payment target
         bookingText,
         '', // Field 16 empty

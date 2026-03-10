@@ -51,7 +51,7 @@ function loadConfig(): CollmexConfig {
     username,
     password,
     companyNr: parseInt(process.env.COLLMEX_COMPANY_NR ?? '1', 10),
-    defaultTaxCode: parseInt(process.env.COLLMEX_DEFAULT_TAX_CODE ?? '1600', 10),
+    defaultTaxCode: parseInt(process.env.COLLMEX_DEFAULT_TAX_CODE ?? '1600', 10), // Contra/payable account (SKR03: 1600 = Verbindlichkeiten)
     defaultCurrency: process.env.COLLMEX_DEFAULT_CURRENCY ?? 'EUR',
     unknownVendorNumber: process.env.COLLMEX_UNKNOWN_VENDOR ?? '9999',
     accountHistoryYears: parseInt(process.env.COLLMEX_ACCOUNT_HISTORY_YEARS ?? '2', 10),
@@ -122,7 +122,7 @@ async function main() {
   // --- collmex_upload_invoice ---
   server.tool(
     'collmex_upload_invoice',
-    `Upload one or more supplier invoices to Collmex. Creates CMXLRN booking records. Defaults: currency=${config.defaultCurrency}, tax_code=${config.defaultTaxCode} (19% VAT), company=${config.companyNr}. IMPORTANT: Always confirm with the user before calling this — uploads cannot be easily undone.`,
+    `Upload one or more supplier invoices to Collmex. Creates CMXLRN booking records. Defaults: currency=${config.defaultCurrency}, company=${config.companyNr}. The VAT rate (19%, 7%, 0%) is auto-determined by Collmex from the net/VAT amounts. IMPORTANT: Always confirm with the user before calling this — uploads cannot be easily undone.`,
     {
       invoices: z
         .array(
@@ -135,7 +135,6 @@ async function main() {
             expense_account: z.string().describe('Expense account number (e.g., "4616")'),
             booking_text: z.string().nullish().describe('Booking text / description'),
             currency: z.string().nullish().describe(`Currency code (default: ${config.defaultCurrency})`),
-            tax_code: z.number().nullish().describe(`Collmex tax code / Steuerschlüssel (default: ${config.defaultTaxCode} = 19% VAT). Use 0 for tax-free, 8 for 7% VAT.`),
           }),
         )
         .describe('Array of invoice objects to upload'),
