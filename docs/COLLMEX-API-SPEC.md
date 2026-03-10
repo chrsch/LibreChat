@@ -252,7 +252,7 @@ Creates supplier invoice bookings (Lieferantenrechnung) in Collmex.
 | 7 | Steuerbetrag | VAT amount | German decimal: `19,00` |
 | 8–11 | (leer) | (empty) | `""` |
 | 12 | Währung | Currency | `EUR` |
-| 13 | (Steuerschlüssel) | Tax code | `1600` (19% VAT standard) |
+| 13 | (Gegenkonto) | Contra/payable account | `1600` (SKR03: Verbindlichkeiten — always fixed) |
 | 14 | (Zahlungsziel) | Payment target | `0` |
 | 15 | Buchungstext | Booking text | `Rechnung INV-001 Apple: MacBook (2499.00 EUR)` |
 | 16 | (leer) | (empty) | `""` |
@@ -276,11 +276,13 @@ With items: "Rechnung {invoice_number} {vendor_name}: {item1} ({price1} EUR), {i
 Items sorted by price ascending, only items with price > 0
 ```
 
-**Tax code values:**
+**Contra/payable account (Gegenkonto, field 13):**
+
+Field 13 is NOT a tax code — it is the SKR03 contra account for the booking (Verbindlichkeiten aus Lieferungen und Leistungen). Always use `1600` for SKR03. Collmex auto-determines the VAT rate from the net_amount and vat_amount fields.
 
 | Code | Meaning |
 |---|---|
-| `1600` | Standard 19% VAT (Umsatzsteuer) |
+| `1600` | Verbindlichkeiten aus Lieferungen und Leistungen (SKR03) — always use this |
 
 **CSV encoding:**
 - Delimiter: `;` (semicolon)
