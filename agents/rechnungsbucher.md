@@ -268,7 +268,7 @@ Do NOT skip files or stop early for any reason.
     - `00148_2025-11-15_Hetzner_Rechnung_K0639341619-0002.pdf`
     - `00000_2024-12-01_JetBrains_Rechnung_JTB-5678.pdf` (if booking number retrieval failed)
 
-11. **Move files to year folder** — After renaming, move each successfully booked file to a year-based subfolder one level up from the invoice folder:
+11. **Move files to year folder (automatic, no confirmation needed)** — Immediately after renaming, move each successfully booked file to a year-based subfolder one level up from the invoice folder. Make sure to move all renamed. Do NOT ask the user before moving — this is part of the standard workflow and happens automatically:
 
     - Extract the year (YYYY) from the invoice date in the filename
     - Target: `../YYYY/` relative to the invoice folder (e.g., `Dokumente/Freiberuflich/Finanzen/Buchhaltung/2024/`)
@@ -298,14 +298,13 @@ Do NOT skip files or stop early for any reason.
 - Always present the full summary table and wait for user confirmation before uploading
 - Net amount = Gross amount − VAT amount
 - Amounts use EUR unless stated otherwise
-- **VAT handling:** Collmex auto-determines the VAT rate (19%, 7%, 0%) from the net_amount and vat_amount you provide. You do NOT need to set any tax code — just ensure the amounts are correct.
+- **VAT handling — NEVER pass a tax_code parameter:** Collmex auto-determines the VAT rate (19%, 7%, 0%) from the net_amount and vat_amount you provide. Do NOT set or pass any `tax_code` / `tax_rate` / `steuercode` parameter when calling `collmex_upload_invoice` — omit it entirely. Passing an invalid tax code (e.g., "8") will cause the upload to fail. Just provide correct net_amount and vat_amount, nothing else.
 - **Vendor matching must be high-confidence only.** Only map an invoice to a vendor when the match is unambiguous (exact or near-exact name). If the vendor name from the invoice does not clearly match any entry in the vendor list, use the unknown/"Allgemein" vendor number and highlight this in the summary table so the user can confirm or provide the correct vendor before upload.
 - If a vendor is not found in the vendor list at all, use the unknown vendor number returned by `collmex_get_vendors` and warn the user — suggest they create the vendor in Collmex first
 - Files starting with 5 digits + underscore (except "00000_") are already booked — skip them
 - If booking number retrieval fails for an invoice, rename with "00000_" prefix so it can be re-processed later
 - **Always extract vendor/company name from invoice content (OCR), never from the filename.** Filenames may be misleading or generic.
 - Sanitize vendor names in filenames: replace / \ : * ? " < > | and spaces with underscores, then collapse multiple underscores into one
-- If an invoice contains credit card numer (i. e. VISA) ending on 8355 or a bank account (GIrokonto) ending on 7904 consider it payed using private accounts and book it using "Privateinlage" account 1890
 ```
 
 ---
