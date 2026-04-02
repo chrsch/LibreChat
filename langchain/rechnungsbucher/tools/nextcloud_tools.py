@@ -64,27 +64,20 @@ class ListFilesInput(BaseModel):
 def nextcloud_list_files(path: str = "") -> str:
     """List files and folders in a directory on Nextcloud.
 
-    Returns name, type (file/folder), size, last modified date, and MIME type for each entry.
+    Returns name, type (file/folder), size, and MIME type for each entry.
     """
     client = _get_client()
     try:
         entries = client.list_files(path)
-        result = {
-            "path": path or "/",
-            "total_entries": len(entries),
-            "entries": [
-                {
-                    "name": e.name,
-                    "path": e.path,
-                    "type": e.type,
-                    "size_bytes": e.size_bytes,
-                    "mime_type": e.mime_type,
-                    "last_modified": e.last_modified,
-                }
-                for e in entries
-            ],
-        }
-        return json.dumps(result, indent=2, ensure_ascii=False)
+        # Compact format to minimize tokens
+        lines = []
+        for e in entries:
+            lines.append(f"{e.type[0]}|{e.name}|{e.mime_type or ''}|{e.size_bytes}")
+        return (
+            f"path={path or '/'} total={len(entries)}\n"
+            f"format: type(f/d)|name|mime|size\n"
+            + "\n".join(lines)
+        )
     except Exception as exc:
         return f"Error listing files: {exc}"
 
@@ -95,7 +88,7 @@ class DownloadFileInput(BaseModel):
 
 
 @tool(args_schema=DownloadFileInput)
-def nextcloud_download_file(path: str, max_pages: int = 10) -> str:
+def nextcloud_download_file(path: str, max_pages: int = 5) -> str:
     """Download a file from Nextcloud and return its content.
 
     PDFs are parsed to extracted text (ideal for invoices).
@@ -109,26 +102,20 @@ def nextcloud_download_file(path: str, max_pages: int = 10) -> str:
         if mime == "application/pdf":
             text, pages = _extract_pdf_text(raw, max_pages)
             if not text:
-                text = (
-                    "This PDF appears to be scanned/image-based. Text extraction returned no content. "
-                    f"Total size: {size} bytes."
-                )
-            return json.dumps(
-                {"filename": filename, "mime_type": mime, "size_bytes": size, "content": text, "content_type": "text", "pages_extracted": pages},
-                indent=2,
-                ensure_ascii=False,
-            )
+                return f"[{filename}] Scanned/image PDF — no text extracted ({size} bytes)"
+            # Return compact: just filename header + extracted text
+            return f"[{filename}] ({pages}p, {size}b)\n{text}"
 
         if _is_text_mime(mime):
-            return json.dumps(
-                {"filename": filename, "mime_type": mime, "size_bytes": size, "content": raw.decode("utf-8", errors="replace"), "content_type": "text", "pages_extracted": None},
-                indent=2,
-                ensure_ascii=False,
-            )
+            content = raw.decode("utf-8", errors="replace")
+            # Truncate very large text files
+            if len(content) > 8000:
+                content = content[:8000] + "\n... (truncated)"
+            return f"[{filename}] ({mime}, {size}b)\n{content}"
 
         if mime.startswith("image/"):
             return json.dumps(
-                {"filename": filename, "mime_type": mime, "size_bytes": size, "content": base64.b64encode(raw).decode(), "content_type": "base64", "pages_extracted": None},
+                {"filename": filename, "mime_type": mime, "size_bytes": size, "content": base64.b64encode(raw).decode(), "content_type": "base64"},
                 indent=2,
             )
 
@@ -276,16 +263,12 @@ def nextcloud_delete_file(path: str) -> str:
         return f"Error deleting file: {exc}"
 
 
-# ─── Export all tools ──────────────────────────────────────────────
+# ─── Export only tools needed for invoice workflow ─────────────
 
 ALL_NEXTCLOUD_TOOLS = [
     nextcloud_list_files,
     nextcloud_download_file,
-    nextcloud_upload_file,
-    nextcloud_get_file_info,
-    nextcloud_search_files,
     nextcloud_create_folder,
     nextcloud_rename_file,
     nextcloud_move_file,
-    nextcloud_delete_file,
 ]

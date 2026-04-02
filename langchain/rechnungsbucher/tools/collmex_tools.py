@@ -48,21 +48,18 @@ def collmex_get_vendors() -> str:
     """Retrieve all vendor (supplier) master data from Collmex.
 
     Returns vendor numbers, company names, preferred expense accounts,
-    and the unknown-vendor fallback number. Call this first to identify
-    which vendor number belongs to an invoice vendor name.
+    and the unknown-vendor fallback number.
     """
     client = _get_client()
     config = _get_config()
     vendors = client.fetch_vendors()
-    result = {
-        "vendors": [
-            {"number": v.number, "name": v.name, "preferred_account": v.preferred_account}
-            for v in vendors
-        ],
-        "unknown_vendor_number": config.unknown_vendor_number,
-        "note": f'Use vendor number "{config.unknown_vendor_number}" for vendors not found in the list. Warn the user when using the unknown vendor.',
-    }
-    return json.dumps(result, indent=2, ensure_ascii=False)
+    # Compact format: one line per vendor to minimize token usage
+    lines = [f"{v.number}|{v.name}|{v.preferred_account or ''}" for v in vendors]
+    return (
+        f"unknown_vendor_number={config.unknown_vendor_number}\n"
+        f"format: number|name|preferred_account\n"
+        + "\n".join(lines)
+    )
 
 
 @tool
@@ -104,7 +101,7 @@ def collmex_get_vendor_account_history(vendor_number: str, years_back: int = 2) 
     )
 
 
-# ─── select_account (pure logic, no API call) ─────────────────────
+# ─── resolve_account (combined: history lookup + selection logic) ──
 
 STATIC_RULES: dict[str, str] = {
     "apple": "4616",
@@ -127,47 +124,43 @@ STATIC_RULES: dict[str, str] = {
 DEFAULT_ACCOUNT = "4900"
 
 
-class AccountHistoryItem(BaseModel):
-    account: str
-    frequency: int
-    percentage: float | None = None
-
-
-class SelectAccountInput(BaseModel):
+class ResolveAccountInput(BaseModel):
+    vendor_number: str = Field(description='Collmex vendor number (e.g., "70001")')
     vendor_name: str = Field(description="Vendor/company name (for static rule matching)")
     vendor_preferred_account: Optional[str] = Field(default=None, description="Preferred expense account from vendor master data")
-    account_history: Optional[list[AccountHistoryItem]] = Field(default=None, description="Historical account entries from collmex_get_vendor_account_history")
     ai_suggestion: Optional[str] = Field(default=None, description="Account number suggested by your analysis of the invoice content")
 
 
-@tool(args_schema=SelectAccountInput)
-def collmex_select_account(
+@tool(args_schema=ResolveAccountInput)
+def collmex_resolve_account(
+    vendor_number: str,
     vendor_name: str,
     vendor_preferred_account: str | None = None,
-    account_history: list[dict[str, Any]] | None = None,
     ai_suggestion: str | None = None,
 ) -> str:
-    """Apply the 5-level account selection logic to determine the best expense account.
-
-    Priority: 1) Historical usage, 2) Vendor preferred account,
+    """Determine the best expense account for a vendor. Fetches booking history from Collmex
+    and applies 5-level selection: 1) Historical usage, 2) Vendor preferred account,
     3) AI/LLM suggestion, 4) Static keyword rules, 5) Default 4900.
-    Provide as many inputs as available for best results.
+
+    Call this ONCE per vendor and reuse the result for all their invoices.
     """
+    client = _get_client()
+
+    # Fetch history
+    history = client.fetch_vendor_account_history(vendor_number, 2)
+
     # 1. Historical
-    if account_history:
-        best = max(account_history, key=lambda x: x.frequency if hasattr(x, "frequency") else x.get("frequency", 0))
-        freq = best.frequency if hasattr(best, "frequency") else best.get("frequency", 0)
-        pct = best.percentage if hasattr(best, "percentage") else best.get("percentage", "?")
-        acc = best.account if hasattr(best, "account") else best.get("account", "")
+    if history:
+        best = max(history, key=lambda x: x.frequency)
         return json.dumps(
-            {"account": acc, "reason": f"Used {freq}x historically ({pct}% of bookings)", "source": "historical"},
+            {"account": best.account, "reason": f"Used {best.frequency}x historically ({best.percentage}% of bookings)", "source": "historical"},
             indent=2,
         )
 
     # 2. Vendor preferred
     if vendor_preferred_account:
         return json.dumps(
-            {"account": vendor_preferred_account, "reason": "Vendor master data preferred account (Aufwandskonto)", "source": "vendor_preferred"},
+            {"account": vendor_preferred_account, "reason": "Vendor master data preferred account", "source": "vendor_preferred"},
             indent=2,
         )
 
@@ -183,13 +176,13 @@ def collmex_select_account(
     for keyword, account in STATIC_RULES.items():
         if keyword in name_lower:
             return json.dumps(
-                {"account": account, "reason": f'Static rule match for keyword "{keyword}"', "source": "static"},
+                {"account": account, "reason": f'Static rule match for "{keyword}"', "source": "static"},
                 indent=2,
             )
 
     # 5. Default
     return json.dumps(
-        {"account": DEFAULT_ACCOUNT, "reason": "No match found — using default general expense account", "source": "default"},
+        {"account": DEFAULT_ACCOUNT, "reason": "No match — default general expense account", "source": "default"},
         indent=2,
     )
 
@@ -274,13 +267,11 @@ def collmex_get_booking_number(vendor_number: str, invoice_number: str, invoice_
     )
 
 
-# ─── Export all tools ──────────────────────────────────────────────
+# ─── Export tools needed for invoice workflow ─────────────────────
 
 ALL_COLLMEX_TOOLS = [
     collmex_get_vendors,
-    collmex_get_account_chart,
-    collmex_get_vendor_account_history,
-    collmex_select_account,
+    collmex_resolve_account,
     collmex_upload_invoice,
     collmex_get_booking_number,
 ]
