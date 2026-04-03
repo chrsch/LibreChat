@@ -5,6 +5,8 @@ into a LangGraph ReAct agent with message trimming for cost optimization.
 
 from __future__ import annotations
 
+import os
+
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import SystemMessage, trim_messages
 from langgraph.prebuilt import create_react_agent
@@ -13,8 +15,11 @@ from config import LLMConfig, AgentConfig
 from tools.collmex_tools import ALL_COLLMEX_TOOLS
 from tools.nextcloud_tools import ALL_NEXTCLOUD_TOOLS
 
+_INVOICE_FOLDER = os.environ.get("INVOICE_FOLDER", "Buchhaltung/Eingang")
 
-SYSTEM_PROMPT = """\
+
+def _build_system_prompt(invoice_folder: str) -> str:
+    return """\
 You are a German accounting assistant. You process supplier invoices from Nextcloud and book them in Collmex.
 
 ## Tools
@@ -22,11 +27,14 @@ You are a German accounting assistant. You process supplier invoices from Nextcl
 - **Nextcloud**: list/download/rename/move/create folders
 
 ## Invoice Folder
-Default: `Dokumente/Freiberuflich/Finanzen/Buchhaltung/Eingang`
-Skip subfolders (Archiv, Umrechnung, queue). Only process files with mime_type "application/pdf".
+Default: `{invoice_folder}`
+Skip subfolders (Archiv, Umrechnung, queue). Only process files with mime_type "application/pdf".""".format(invoice_folder=invoice_folder) + _SYSTEM_PROMPT_SUFFIX
+
+
+_SYSTEM_PROMPT_SUFFIX = """\
 
 ## USD Handling
-For USD invoices, proactively check `Eingang/Umrechnung` for files matching the vendor name (e.g. `2025_KK_OpenAI.pdf`) to find EUR equivalents. If no match, try PayPal PDFs by date. If still no match, ask the user for EUR values.
+For USD invoices, proactively check the `Umrechnung` subfolder inside the invoice folder for files matching the vendor name (e.g. `2025_KK_OpenAI.pdf`) to find EUR equivalents. If no match, try PayPal PDFs by date. If still no match, ask the user for EUR values.
 
 ## Unprocessed File Detection
 - Processed = filename starts with 5 digits + underscore (e.g. `00123_...`), EXCEPT `00000_` prefix → re-process these
@@ -57,7 +65,7 @@ For USD invoices, proactively check `Eingang/Umrechnung` for files matching the 
 9. Rename each file: `{BookingNr:05d}_{YYYY-MM-DD}_{VendorName}_Rechnung_{InvoiceNo}.pdf`
    - Sanitize vendor names: replace special chars/spaces with `_`, collapse multiple `_`
    - If booking number fails, use `00000_` prefix
-10. Move renamed files (except `00000_` prefix) to the year folder ONE LEVEL UP from `Eingang` — i.e. `Dokumente/Freiberuflich/Finanzen/Buchhaltung/{YYYY}/` (NOT inside Eingang!). Create folder if needed. Do this automatically, no confirmation needed
+10. Move renamed files (except `00000_` prefix) to the year folder ONE LEVEL UP from the invoice folder — i.e. the parent of the invoice folder + `/{YYYY}/`. Create folder if needed. Do this automatically, no confirmation needed
 11. Report final summary: counts, booking numbers, renames, moves, errors
 
 ## Rules
@@ -120,7 +128,7 @@ def create_agent(llm_config: LLMConfig, agent_config: AgentConfig):
         include_system=True,
     )
 
-    system_msg = SystemMessage(content=SYSTEM_PROMPT)
+    system_msg = SystemMessage(content=_build_system_prompt(_INVOICE_FOLDER))
 
     def state_modifier(state):
         """Prepend system prompt and trim conversation history to avoid context bloat."""

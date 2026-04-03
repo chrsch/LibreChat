@@ -122,7 +122,7 @@ python main.py "Rechnungen buchen"
 
 ## How It Works
 
-1. The agent scans your Nextcloud invoice folder (`Dokumente/Freiberuflich/Finanzen/Buchhaltung/Eingang`)
+1. The agent scans your Nextcloud invoice folder (`Buchhaltung/Eingang`)
 2. Downloads and extracts text from each unprocessed PDF
 3. Matches vendor names against Collmex, determines the expense account using 5-level logic
 4. Presents a summary table for your review

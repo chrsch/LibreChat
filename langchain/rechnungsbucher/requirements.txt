@@ -8,3 +8,4 @@ python-dotenv>=1.0,<2.0
 pymupdf>=1.25,<2.0
 lxml>=5.0,<6.0
 rich>=13.0,<14.0
+python-telegram-bot>=21.0,<22.0

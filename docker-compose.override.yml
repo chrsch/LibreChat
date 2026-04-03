@@ -37,6 +37,15 @@ services:
   rag_api:
     image: ghcr.io/danny-avila/librechat-rag-api-dev:latest
 
+  rechnungsbucher-bot:
+    container_name: rechnungsbucher-bot
+    build:
+      context: ./langchain/rechnungsbucher
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - ./langchain/rechnungsbucher/.env
+
 networks:
   nginx-proxy:
     external: true
